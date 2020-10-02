@@ -1,6 +1,8 @@
 import sys
+debuglevel = 1
 #Log level 0 = Debug, 1 = Info, 2= Warn, 3 = Error
 def cgx_log(log_level=1, message = ""):
+  message = message.rstrip().replace(r"\r\n", " - ")
   if log_level == 1:
     print("INFO :",message)
   elif log_level == 2:
@@ -9,10 +11,55 @@ def cgx_log(log_level=1, message = ""):
   elif log_level == 3:
     print("ERROR:",message)
   elif log_level == 0:
-    print("DEBUG:",message)
+    if debuglevel >= 3:
+      print("DEBUG:",message)
     pass
   else:
     print("UNK:",message)
+
+def overload_local_debug(message, resp=None, cr=True):
+    """
+    Write DEBUG message to stdout if apropriate debuglevel is set
+    :param message: Debug message
+    :param resp: Optional - CloudGenix SDK response
+    :param cr: add Carriage returns.
+    :return: None
+    """
+    import cloudgenix
+    
+    if debuglevel >= 3:
+        output = "KLS-DEBUG: " + str(message)
+        if cr:
+            output += "\n"
+        cgx_log(1,output)
+        if resp is not None:
+            output2 = str(cloudgenix.jdout(resp))
+            if cr:
+                output2 += "\n"
+            cgx_log(3,output2)
+    return
+
+def overload_output_message(message, resp=None, cr=True):
+    """
+    Output message to STDOUT. Replacement for print.
+    :param message: Message to print
+    :param resp: Optional - CloudGenix SDK response
+    :param cr: add Carriage returns.
+    :return: None
+    """
+    import cloudgenix
+    
+    if debuglevel >= 1:
+        output = str(message)
+        if cr:
+            output += "\n"
+        cgx_log(1,output)
+        if resp is not None:
+            output2 = str(cloudgenix.jdout(resp))
+            if cr:
+                output2 += "\n"
+            cgx_log(1,output2)
+    return
 
 ### This function validates the input variables to the defined variables in the JINJA Template
 def cgx_validate_vars(yml_file, input_dict, strict=False):
@@ -84,6 +131,10 @@ def cgx_auth(auth_token):
 
 def cgx_create_site(sdk, do_site_dict):
     from cloudgenix_config import do
+    
+    do.output_message = overload_output_message ###Overload the output messages so we catch in the debug
+    do.local_debug = overload_local_debug ###Overload the output messages so we catch in the debug
+    
     result = do.do_site(do_site_dict, destroy=False, passed_sdk=sdk, )
     print(result)
     return True
@@ -120,17 +171,6 @@ def cgx_run(yml_file, auth_token, input_dict):
     return False
   else:
     cgx_log(1,"Pushed Config Successfully")
-
-
-
-
-
-
-
-
-
-
-
 
 
 
